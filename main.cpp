@@ -1,27 +1,12 @@
 #include <iostream>
 #include <set>
-#include <list>
 #include<map>
-#include<vector>
-#include<algorithm>
+#include<climits>
 using namespace std;
 //  *-*
-
-/*
- * 0 java
- * 1 prolog
- * 2 ruby
- * 3 c++
- * 4 fortran
- * 5 js
- * 6 python
- * 7 perl
- * 8 smalltalk
- * 9 php
- * 10 typescript
- * 11 pascal
- */
 //map<empleados,set de lenguajes que sabe>
+
+//======= [LENGUAJES] =======
 int const java=0;
 int const prolog=1;
 int const ruby=2;
@@ -35,7 +20,32 @@ int const php=9;
 int const typescript=10;
 int const pascal=11;
 
-void cargaCandidatos(std::map<int,std::set<int>> & candidatos){ //carga del ejemplo del pdf para verificar con una solucion conocida
+//======= [METRICAS] =======
+int metricaBackTracking = 0;
+int metricaGreedy = 0;
+
+//======= [FUNCIONES COMUNES] =======
+
+void printSet(std::set<int> & s){
+	auto it = s.begin();
+	while(it!=s.end()){
+		std::cout<<" - "<<*it<<" "<<std::endl;
+		it++;
+	}
+}
+
+void eliminarRequisitos(std::map<int,std::set<int>> & candidatos, std::set<int> & requisitos, int empleado){
+	//elimina de los requisitos las habilidades que tiene el nuevo candidato a contratar
+	set<int> lenguajesNuevoEmpleado = candidatos[empleado];
+
+	auto it = lenguajesNuevoEmpleado.begin();
+	while(it != lenguajesNuevoEmpleado.end()){
+		requisitos.erase(*it);
+		it++;
+	}
+}
+
+void cargaCandidatos(std::map<int,std::set<int>> & candidatos){
     set<int> c1={java,prolog,cpp,fortran};
     set<int> c2={python,perl,smalltalk,php,typescript,pascal};
     set<int> c3={ruby,javascript,smalltalk};
@@ -45,9 +55,15 @@ void cargaCandidatos(std::map<int,std::set<int>> & candidatos){ //carga del ejem
     set<int> c7={php,typescript,pascal};
     set<int> c8={prolog,fortran,perl,typescript};
 
-	set<int> c9={0,1,2,3,4,5,6,7,8,9,10,11};
+	set<int> comodin={0,1,2,3,4,5,6,7,8,9,10,11};
 
-	//candidatos[9]=c9;
+
+	//si dejamos el comodin en 1 y c1 en 9, greedy da la misma sol que backtracking (ambos contratan solo al comodin)
+	//si dejamos el comodin en 9, greedy da un aproximado peor que backtracking (1,2,3 vs comodin)
+	//si no podemos al comodin ambos contratan a 1,2,3
+
+	//candidatos[1]=comodin;
+
     candidatos[1]=c1;
     candidatos[2]=c2;
     candidatos[3]=c3;
@@ -56,17 +72,79 @@ void cargaCandidatos(std::map<int,std::set<int>> & candidatos){ //carga del ejem
     candidatos[6]=c6;
     candidatos[7]=c7;
     candidatos[8]=c8;
+
+	//candidatos[9]=comodin;
+	//candidatos[9]=c1;
 }
 
-//=============================================
-//aprox greedy. punto B
+//======= [SOLUCION EXTACTA (IMPLEMENTADO EN BASE A BACKTRACKING)] =======
+
+std::set<int> asignacionGlobal;
+int cotaGlobal = INT_MAX;
+
+void restauraRequisitos(std::set<int> & requisitos, std::set<int> & lenguajesEmpleado){
+	//restaura los cambios hechos en el backtracking luego del llamado recursivo
+	auto it = lenguajesEmpleado.begin();
+
+	while(it != lenguajesEmpleado.end()){
+		requisitos.insert(*it);
+		it++;
+	}
+
+}
+
+void buscarAsignacionExacta(std::map<int,std::set<int>> & candidatos, std::set<int> & requisitos, std::set<int> & contratados, int nivel){
+	if(requisitos.size() == 0){
+		if(nivel < cotaGlobal){ //nivel es la cantidad de contratados hasta ahora
+			cotaGlobal = nivel;
+			asignacionGlobal = contratados;
+		}
+	}
+
+	metricaBackTracking++;
+
+	auto it = candidatos.begin();
+
+	while(it != candidatos.end() && nivel < cotaGlobal){
+
+		std::map<int,std::set<int>> copiaCandidatos = candidatos; //se copia para no tener que restaurarlo luego del llamado recursivo
+		eliminarRequisitos(candidatos,requisitos,it->first);
+		copiaCandidatos.erase(it->first);
+		contratados.insert(it->first);
+
+		buscarAsignacionExacta(copiaCandidatos,requisitos,contratados,nivel+1);
+
+		contratados.erase(it->first); //deshacer cambios
+		restauraRequisitos(requisitos,it->second);
+		it++;
+	}
+}
+
+void solBacktracking(std::map<int,std::set<int>> candidatos, std::set<int> requisitos){
+
+	std::set<int> contratadosBack;
+	buscarAsignacionExacta(candidatos,requisitos,contratadosBack,0);
+
+	if(asignacionGlobal.size() == 0){
+		std::cout<<"[Backtracking]: Sin sol. que permita cubrir todos los lenguajes | "<<metricaBackTracking<<" iteraciones "<<std::endl;
+	}
+	else{
+		std::cout<<"[Backtracking]: "<<metricaBackTracking<<" iteraciones "<<std::endl;
+		printSet(asignacionGlobal);
+	}
+}
+
+//======= [SOLUCION APROXIMADA (MEDIANTE ALGORITMO GREEDY)] =======
+
 void interseccion(std::set<int> & a, std::set<int> & b, std::set<int> & result){
+	//calcula interseccion entre dos conjuntos de manera simple
 	auto it1 = a.begin();
 	auto it2 = b.begin();
 
 	while(it1 != a.end()){
 		while(it2 != b.end()){
 			if(*it1 == *it2){
+				metricaGreedy++;
 				result.insert(*it1);
 			}
 			it2++;
@@ -87,7 +165,7 @@ int buscarMejorCandidato(std::map<int,std::set<int>> & candidatos, std::set<int>
 	while(itCandidatos != candidatos.end()){
 
 		interseccion(requisitos,itCandidatos->second,intersec);
-
+		metricaGreedy++;
 		size = intersec.size();
 
 		if(size > mejorParcial){
@@ -102,22 +180,13 @@ int buscarMejorCandidato(std::map<int,std::set<int>> & candidatos, std::set<int>
 	return mejorCandidato;
 }
 
-void eliminarRequisitos(std::map<int,std::set<int>> & candidatos, std::set<int> & requisitos, int empleado){
-	set<int> lenguajesNuevoEmpleado = candidatos[empleado];
-
-	auto it = lenguajesNuevoEmpleado.begin();
-	while(it != lenguajesNuevoEmpleado.end()){
-		requisitos.erase(*it);
-		it++;
-	}
-}
-
-void buscarAsignaciones(std::map<int,std::set<int>> & candidatos, std::set<int> & requisitos, std::set<int> & contratados){
+void buscarAsignacionesGreedy(std::map<int,std::set<int>> & candidatos, std::set<int> & requisitos, std::set<int> & contratados){
 
 	bool buscando = true;
 	int candidato = 0;
 
 	while(buscando){
+		metricaGreedy++;
 		candidato = buscarMejorCandidato(candidatos,requisitos);
 		if(candidato != -1){
 			contratados.insert(candidato);
@@ -125,41 +194,39 @@ void buscarAsignaciones(std::map<int,std::set<int>> & candidatos, std::set<int> 
 			candidatos.erase(candidato);
 		} else {buscando = false;}
 	}
-}
 
-void printSet(std::set<int> & s){
-	auto it = s.begin();
-	while(it!=s.end()){
-		std::cout<<" - "<<*it<<" "<<std::endl;
-		it++;
+	if (requisitos.size() != 0){ //si no asignó a todos los lenguajes al menos un candidato, no debe ser solucion
+		contratados.clear();
 	}
 }
 
-int main (){
-    //armar un set con las skill sin cubrir (al principio seran todas)
-    //2: elegir el que mas cubre de esas sin cubrir
-    //3:asignarlo, rearmar el set de sin curbrir sacandole la intersecc de esas y lo q hace el nuevo asignado
-    //4 ->> repetir gg
+void solGreedy(std::map<int,std::set<int>> candidatos, std::set<int> requisitos){
 
-	//estructuras encesarias
-	/*
-	 * candidatos con las skill que tienen
-	 * los que nya estan contratados
-	 * skill que se necesitan
-	 */
-	std::map<int,std::set<int>> candidatos;
-	cargaCandidatos(candidatos);
-	std::set<int> requisitos = {java,prolog,ruby,cpp,fortran,javascript,python,perl,smalltalk,php,typescript,pascal};
-	std::set<int> contratados;
+	std::set<int> contratadosGreedy;
+	buscarAsignacionesGreedy(candidatos,requisitos,contratadosGreedy);
 
-	buscarAsignaciones(candidatos,requisitos,contratados);
-	if(contratados.size() == 0){
-		std::cout<<"No hay asignacion que permita cubrir todos los lenguajes"<<std::endl;
+	if(contratadosGreedy.size() == 0){
+		std::cout<<"[Greedy]: Sin sol. que permita cubrir todos los lenguajes | "<<metricaGreedy<<" iteraciones "<<std::endl;
 	}
 	else{
-		printSet(contratados);
+		std::cout<<"[Greedy]: "<<metricaGreedy<<" iteraciones "<<std::endl;
+		printSet(contratadosGreedy);
 	}
+}
+
+
+
+int main (){
+
+	std::set<int> requisitos = {java,prolog,ruby,cpp,fortran,javascript,python,perl,smalltalk,php,typescript,pascal};
+
+	std::map<int,std::set<int>> candidatos;
+	cargaCandidatos(candidatos);
+
+	std::cout<<" ===== Empleados a contratar : ====="<<std::endl;
+	solGreedy(candidatos,requisitos);
+	solBacktracking(candidatos,requisitos);
+	std::cout<<" ===== Greedy es "<<metricaBackTracking/metricaGreedy<<" veces más rápido."<<std::endl;
 
     return 0;
-
 }
