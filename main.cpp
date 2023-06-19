@@ -1,8 +1,8 @@
-#include <iostream>
-#include <set>
+#include<iostream>
+#include<set>
 #include<map>
 #include<climits>
-using namespace std;
+
 //  *-*
 //map<empleados,set de lenguajes que sabe>
 
@@ -36,7 +36,7 @@ void printSet(std::set<int> & s){
 
 void eliminarRequisitos(std::map<int,std::set<int>> & candidatos, std::set<int> & requisitos, int empleado){
 	//elimina de los requisitos las habilidades que tiene el nuevo candidato a contratar
-	set<int> lenguajesNuevoEmpleado = candidatos[empleado];
+	std::set<int> lenguajesNuevoEmpleado = candidatos[empleado];
 
 	auto it = lenguajesNuevoEmpleado.begin();
 	while(it != lenguajesNuevoEmpleado.end()){
@@ -46,16 +46,16 @@ void eliminarRequisitos(std::map<int,std::set<int>> & candidatos, std::set<int> 
 }
 
 void cargaCandidatos(std::map<int,std::set<int>> & candidatos){
-    set<int> c1={java,prolog,cpp,fortran};
-    set<int> c2={python,perl,smalltalk,php,typescript,pascal};
-    set<int> c3={ruby,javascript,smalltalk};
-    set<int> c4={fortran,javascript,perl,smalltalk,typescript,pascal};
-    set<int> c5={cpp,python,php};
-    set<int> c6={prolog,ruby};
-    set<int> c7={php,typescript,pascal};
-    set<int> c8={prolog,fortran,perl,typescript};
+    std::set<int> c1={java,prolog,cpp,fortran};
+    std::set<int> c2={python,perl,smalltalk,php,typescript,pascal};
+    std::set<int> c3={ruby,javascript,smalltalk};
+    std::set<int> c4={fortran,javascript,perl,smalltalk,typescript,pascal};
+    std::set<int> c5={cpp,python,php};
+    std::set<int> c6={prolog,ruby};
+    std::set<int> c7={php,typescript,pascal};
+    std::set<int> c8={prolog,fortran,perl,typescript};
 
-	set<int> comodin={0,1,2,3,4,5,6,7,8,9,10,11};
+	std::set<int> comodin={0,1,2,3,4,5,6,7,8,9,10,11};
 
 
 	//si dejamos el comodin en 1 y c1 en 9, greedy da la misma sol que backtracking (ambos contratan solo al comodin)
@@ -158,7 +158,7 @@ int buscarMejorCandidato(std::map<int,std::set<int>> & candidatos, std::set<int>
 	int mejorParcial = 0;
 	int mejorCandidato = -1;
 	auto itCandidatos = candidatos.begin();
-	set<int> intersec;
+	std::set<int> intersec;
 	int size = 0;
 	bool encontrado = false;
 
